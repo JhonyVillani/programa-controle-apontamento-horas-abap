@@ -3,9 +3,12 @@
 *&---------------------------------------------------------------------*
 
 INFOTYPES: 0001,
+           0002,
            0007.
 
-TABLES pernr.
+TABLES:
+        pernr,
+        zprojetoft01_jm.
 
 NODES peras.
 

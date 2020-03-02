@@ -114,7 +114,7 @@ ALV:
 
 ---------------------------------------------------------------------------
 
-SMARTFORMS:
+SMARTFORMS: ZPROJETOFSF01_JM
 
 Exibir um formulário para cada DIA do colaborador com as informações da opção “Sintético (horas extras)”
 (ou seja, cada linha do relatório é um formulário) exibindo o seguinte layout:

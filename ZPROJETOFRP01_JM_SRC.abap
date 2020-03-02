@@ -1,0 +1,23 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZPROJETOFRP01_JM_SRC
+*&---------------------------------------------------------------------*
+
+  SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-t01.
+  SELECT-OPTIONS so_pernr FOR p0001-pernr NO INTERVALS.
+  SELECT-OPTIONS so_bukrs FOR p0001-bukrs NO INTERVALS.
+  SELECT-OPTIONS so_werks FOR p0001-werks NO INTERVALS.
+  SELECT-OPTIONS so_btrtl FOR p0001-btrtl NO INTERVALS.
+  SELECT-OPTIONS so_begda FOR p0001-begda NO INTERVALS.
+  SELECT-OPTIONS so_endda FOR p0001-endda NO INTERVALS.
+  SELECTION-SCREEN END OF BLOCK b1.
+
+  SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE text-t02.
+  SELECT-OPTIONS so_schkz FOR p0007-schkz NO INTERVALS.
+  SELECT-OPTIONS so_projt FOR zprojetoft01_jm-projt NO INTERVALS.
+  PARAMETER p_sinttc      AS CHECKBOX DEFAULT abap_true..
+  SELECTION-SCREEN END OF BLOCK b2.
+
+  SELECTION-SCREEN BEGIN OF BLOCK b3 WITH FRAME TITLE text-t03.
+  PARAMETER p_alv   RADIOBUTTON GROUP view DEFAULT 'X'.
+  PARAMETER p_smart RADIOBUTTON GROUP view.
+  SELECTION-SCREEN END OF BLOCK b3.
