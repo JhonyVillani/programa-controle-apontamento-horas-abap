@@ -3,14 +3,14 @@
 Tabela 1: PRJF – Projetos para apontamentos (ZPROJETOFT01_JM)
 
 Nome do campo	Descrição	Tipo	Tamanho	Observação
-PROJT	Código do projeto	CHAR	4		Somente letras maiúsculas
-PROTX	Nome do projeto		CHAR	80		Case sensitive
+PROJT	Código do projeto	CHAR	4		Somente letras maiúsculas ZABAPTRDE31_JM
+PROTX	Nome do projeto		CHAR	80		Case sensitive			  ZABAPTRDE32_JM
 
-
-•	Permitir atualização da tabela via transação SM30.
-•	O código do projeto não deve se repetir.
+•	Permitir atualização da tabela via transação SM30. ZABAPTRFG10_JM
+•	O código do projeto não deve se repetir. Primary Key
 
 A tabela deve conter os seguintes projetos:
+
 PROJT	PROTX
 ITZ1	Projeto 1
 ITZ2	Projeto 2
@@ -23,31 +23,31 @@ ITZ5	Projeto 5
 Tabela 2: PRJF – Carga horária mínima diária (ZPROJETOFT02_JM)
 
 Nome do campo	Descrição						Tipo	Tamanho	Observação
-SCHKZ	Código do plano de Horário de trabalho	CHAR	8		Utilizar o mesmo elemento de dados, chave externa
+SCHKZ	Código do plano de Horário de trabalho	CHAR	8		Utilizar o mesmo elemento de dados, chave externa ZABAPTRDE33_JM
 																e ajuda de pesquisa do campo P0007-SCHKZ.
-HRMIN	Horas diárias mínima					DEC		5,3	
-EXTRA	Valor da hora extra						DEC		5,3	
+HRMIN	Horas diárias mínima					DEC		5,3														  ZABAPTRDE34_JM
+EXTRA	Valor da hora extra						DEC		5,3														  ZABAPTRDE35_JM
 
-•	Permitir atualização da tabela via transação SM30.
-•	Um plano de horário de trabalho não pode repetir.
+•	Permitir atualização da tabela via transação SM30. ZABAPTRFG11_JM
+•	Um plano de horário de trabalho não pode repetir. Primary Key
 
 ---------------------------------------------------------------------------
 
 Tabela 3: PRJE – Apontamentos diários (ZPROJETOFT03_JM)
 
 Nome do campo	Descrição	Tipo	Tamanho	Observação
-PERNR	Nº Pessoal			NUMC	8		Nº Pessoal: Deve ter chave externa e ajuda de pesquisa igual dos infotipos.
-DATA	Data do apontamento	DATS	8	
-PROJT	Código do projeto	CHAR	4		Deve ter chave externa com a tabela de projetos
-HORAS	Horas trabalhadas	DEC		5,3	
+PERNR	Nº Pessoal			NUMC	8		Nº Pessoal: Deve ter chave externa e ajuda de pesquisa igual dos infotipos. ZABAPTRDE36_JM
+DATA	Data do apontamento	DATS	8 																					ZABAPTRDE37_JM
+PROJT	Código do projeto	CHAR	4		Deve ter chave externa com a tabela de projetos								ZABAPTRDE31_JM
+HORAS	Horas trabalhadas	DEC		5,3																					ZABAPTRDE38_JM
 
-•	Cada colaborador pode ter mais de um apontamento por dia, desde que o projeto seja diferente.
-•	Deverá ser criada uma visão para atualizar a tabela 3.
-•	A visão deve exibir os campos da tabela 3 + PROTX da tabela 1.
+•	Cada colaborador pode ter mais de um apontamento por dia, desde que o projeto seja diferente. Primary Key
+•	Deverá ser criada uma visão para atualizar a tabela 3. ZABAPTRFG12_JM
+•	A visão deve exibir os campos da tabela 3 + PROTX da tabela 1. ZPROJETOFSH01_JM
 
 ---------------------------------------------------------------------------
 
-2) Desenvolver um programa para listar os apontamentos dos colaboradores (ZPROJETOFRP01_nn).
+2) Desenvolver um programa para listar os apontamentos dos colaboradores (ZPROJETOFRP01_JM).
 
 	Tela de seleção:
 
