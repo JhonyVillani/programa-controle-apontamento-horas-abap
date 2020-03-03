@@ -10,36 +10,16 @@
 CLASS lcl_apontamento DEFINITION.
   PUBLIC SECTION.
 
-*    TYPES:
-*  BEGIN OF ty_s_saida,
-*    pernr  TYPE PERNR          ,"p0001-pernr,
-*    cname  TYPE CNAME          ,"p0002-cname,
-*    bukrs  TYPE BUKRS          ,"p0001-bukrs,
-*    butxt  TYPE BUTXT          ,"t001-butxt,            "Descrição Empresa
-*    werks  TYPE WERKS          ,"p0001-werks,           "Área RH
-*    name1  TYPE NAME1          ,"t500p-name1,           "Desc Área RH
-*    btrtl  TYPE BTRTL          ,"p0001-btrtl,           "Sub-Área RH
-*    btext  TYPE BTEXT          ,"t001p-btext,           "Desc Sub-RH
-*    persg  TYPE PERSG          ,"p0001-persg,           "Grupo de Empregados
-*    ptext  TYPE PGTXT          ,"t501t-ptext,           "Desc Grupo
-*    persk  TYPE PERSK          ,"p0001-persk,           "Subgrupo de Empregados
-*    ptext2 TYPE PKTXT          ,"t503t-ptext,           "Texto do subgrupo de empregados
-*    schkz  TYPE SCHKN          ,"p0007-schkz,           "Plano de horário de trabalho
-*    begda  TYPE BEGDA          ,"p0001-begda,           "Data do Apontamento
-*    projt  TYPE ZABAPTRDE31_JM ,         "zprojetoft03_jm-projt, "Código do Projeto
-*    protx  TYPE ZABAPTRDE32_JM ,         "zprojetoft01_jm-protx, "Nome do Projeto
-*    horas  TYPE ZABAPTRDE38_JM ,         "zprojetoft03_jm-horas, "Horas apontadas
-**    Quantidade de horas extras  type , "Sintetico SIM
-**    Valor por hora extra        type , "Sintetico SIM
-**    Valor total de horas extras type , "Sintetico SIM
-*  END OF ty_s_saida.
-
 *   Tabelas complementares populadas no constructor
     DATA: gt_t001  TYPE TABLE OF t001,  "Descrição empresas
           gt_t500p TYPE TABLE OF t500p, "Descrição área de RH
           gt_t001p TYPE TABLE OF t001p, "Descrição subárea de RH
           gt_t501t TYPE TABLE OF t501t, "Descrição Grupo Emp.
-          gt_t503t TYPE TABLE OF t503t. "Descrição Sub-Grupo Emp.
+          gt_t503t TYPE TABLE OF t503t, "Descrição Sub-Grupo Emp,
+          gt_p0001 TYPE TABLE OF p0001, "Tabela com filtro select-options
+          gt_zprojetoft01 TYPE TABLE OF zprojetoft01_jm, "Tabela Apontamento de Projetos
+          gt_zprojetoft02 TYPE TABLE OF zprojetoft02_jm, "Tabela de horas trabalhadas
+          gt_zprojetoft03 TYPE TABLE OF zprojetoft03_jm. "Tabela de projetos
 
 *   Atributos de saída
     DATA: mt_saida TYPE TABLE OF zprojetofs01_jm,
@@ -68,17 +48,17 @@ CLASS lcl_apontamento IMPLEMENTATION.
     SELECT * "bukrs butxt
       FROM t001
       INTO TABLE gt_t001
-     WHERE spras = sy-langu AND land1 = 'BR'.
+     WHERE spras = sy-langu. "AND land1 = 'BR'.
 
     SELECT * "bukrs name1
       FROM t500p
-      INTO TABLE gt_t500p
-     WHERE land1 = 'BR'.
+      INTO TABLE gt_t500p.
+    "WHERE land1 = 'BR'.
 
     SELECT *
       FROM t001p
-      INTO TABLE gt_t001p
-     WHERE molga = 37.
+      INTO TABLE gt_t001p.
+    "WHERE molga = 37.
 
     SELECT *
       FROM t501t
@@ -90,11 +70,33 @@ CLASS lcl_apontamento IMPLEMENTATION.
       INTO TABLE gt_t503t
      WHERE sprsl = sy-langu.
 
+    SELECT *
+      FROM zprojetoft01_jm
+      INTO TABLE gt_zprojetoft01.
+
+    SELECT *
+      FROM zprojetoft02_jm
+      INTO TABLE gt_zprojetoft02.
+
+    SELECT *
+      FROM zprojetoft03_jm
+      INTO TABLE gt_zprojetoft03
+     WHERE projt IN so_projt.
+    "where IN so_pernr
+
+**********************COMO FAZER O GET_PERAS LER MEUS SELECT-OPTIONS?
+*
+*    SELECT *
+*        FROM pA0001
+*        INTO TABLE gt_p0001
+*        WHERE schkz    IN so_schkz
+*          AND projt    IN so_projt.
+
   ENDMETHOD.                    "constructor
 
   METHOD processar.
 
-    SORT p0001 BY endda.
+    SORT p0001 BY begda DESCENDING.
 
     DATA: gs_p0001 TYPE p0001,
           gs_p0002 TYPE p0002,
@@ -103,60 +105,86 @@ CLASS lcl_apontamento IMPLEMENTATION.
           gs_t001p TYPE t001p,
           gs_t501t TYPE t501t,
           gs_t503t TYPE t503t,
+          gs_zprojetoft03 TYPE zprojetoft03_jm,
+          gs_zprojetoft02 TYPE zprojetoft02_jm,
+          gs_zprojetoft01 TYPE zprojetoft01_jm,
           gs_t001  TYPE t001.
 
-    LOOP AT p0001 INTO gs_p0001.
-      IF p_sinttc = abap_true. "CASO MARCADO
+    DATA: vlr_aux TYPE zprojetofde04_jm.
 
-*        Caso a opção “Sintético (horas extras)” estiver marcada, as horas de apontamentos devem ser
-*        somadas por dia e somente serão exibidos os dias em que o colaborador possui hora extra:
+    LOOP AT gt_zprojetoft03 INTO gs_zprojetoft03.
 
-*        Quantidade de horas extras (= Total de horas apontadas – Horas mínimas diárias da tabela 2)
-*        Valor por hora extra (Tabela 2-EXTRA)
-*        Valor total de horas extras (= Quantidade de horas extras * Valor por hora extra)
-      ENDIF.
+      LOOP AT p0001 INTO gs_p0001.
+        IF gs_zprojetoft03-pernr EQ gs_p0001-pernr.
 
-      CLEAR gs_p0002.
-      READ TABLE p0002 INTO gs_p0002 WITH KEY pernr = pernr-pernr. "Desc. Pessoa
+          CLEAR gs_zprojetoft01.
+          READ TABLE gt_zprojetoft01 INTO gs_zprojetoft01 WITH KEY projt = gs_zprojetoft03-projt.
 
-      CLEAR gs_t001.
-      READ TABLE gt_t001 INTO gs_t001 WITH KEY bukrs = gs_p0001-bukrs. "Desc Empresa
+*       Caso a opção “Sintético (horas extras)” estiver marcada, as horas de apontamentos devem ser
+*       somadas por dia e somente serão exibidos os dias em que o colaborador possui hora extra:
 
-      CLEAR gs_t500p.
-      READ TABLE gt_t500p INTO gs_t500p WITH KEY bukrs = gs_p0001-bukrs. "Desc Grupo RH
+*       Quantidade de horas extras (= Total de horas apontadas – Horas mínimas diárias da tabela 2)
+*       Valor por hora extra (Tabela 2-EXTRA)
+*       Valor total de horas extras (= Quantidade de horas extras * Valor por hora extra)
 
-      CLEAR gs_t001p.
-      READ TABLE gt_t001p INTO gs_t001p WITH KEY werks = gs_p0001-werks. "Desc Sub RH
+          CLEAR gs_p0002.
+          READ TABLE p0002 INTO gs_p0002 WITH KEY pernr = pernr-pernr. "Desc. Pessoa
 
-      CLEAR gs_t501t.
-      READ TABLE gt_t501t INTO gs_t501t WITH KEY persg = gs_p0001-persg. "Desc Grupo Emp.
+          CLEAR gs_t001.
+          READ TABLE gt_t001 INTO gs_t001 WITH KEY bukrs = gs_p0001-bukrs. "Desc Empresa
 
-      CLEAR gs_t503t.
-      READ TABLE gt_t503t INTO gs_t503t WITH KEY persk = gs_p0001-persk. "Desc Sub-Grupo Emp.
+          CLEAR gs_t500p.
+          READ TABLE gt_t500p INTO gs_t500p WITH KEY bukrs = gs_p0001-bukrs "Desc Área de RH
+                                                     persa = gs_p0001-werks.
 
-      CLEAR gs_p0007.
-      READ TABLE p0007[] INTO gs_p0007 WITH KEY pernr = pernr-pernr. "Desc Sub-Grupo Emp.
+          CLEAR gs_t001p.
+          READ TABLE gt_t001p INTO gs_t001p WITH KEY werks = gs_p0001-werks. "Desc Sub RH
 
-      ms_saida-pernr  = gs_p0001-pernr.
-      ms_saida-cname  = gs_p0002-cname.
-      ms_saida-bukrs  = gs_p0001-bukrs.
-      ms_saida-butxt  = gs_t001-butxt .
-      ms_saida-werks  = gs_p0001-werks.
-      ms_saida-name1  = gs_t500p-name1.
-      ms_saida-btrtl  = gs_p0001-btrtl.
-      ms_saida-btext  = gs_t001p-btext.
-      ms_saida-persg  = gs_p0001-persg.
-      ms_saida-ptext  = gs_t501t-ptext.
-      ms_saida-persk  = gs_p0001-persk.
-      ms_saida-ptext2 = gs_t503t-ptext.
-      ms_saida-schkz  = gs_p0007-schkz.
-      ms_saida-begda  = gs_p0001-begda.
-*      ms_saida-projt  = zprojetoft03_jm-projt.
-*      ms_saida-protx  = zprojetoft01_jm-protx.
-*      ms_saida-horas  = zprojetoft03_jm-horas.
+          CLEAR gs_t501t.
+          READ TABLE gt_t501t INTO gs_t501t WITH KEY persg = gs_p0001-persg. "Desc Grupo Emp.
 
-      APPEND ms_saida TO mt_saida.
-      CLEAR ms_saida.
+          CLEAR gs_t503t.
+          READ TABLE gt_t503t INTO gs_t503t WITH KEY persk = gs_p0001-persk. "Desc Sub-Grupo Emp.
+
+          CLEAR gs_p0007.
+          READ TABLE p0007[] INTO gs_p0007 WITH KEY pernr = pernr-pernr. "Desc Sub-Grupo Emp.
+
+          CLEAR gs_zprojetoft02.
+          READ TABLE gt_zprojetoft02 INTO gs_zprojetoft02 WITH KEY schkz = gs_p0007-schkz. "Horas de trabalho
+
+          ms_saida-pernr  = gs_p0001-pernr.
+          ms_saida-cname  = gs_p0002-cname.
+          ms_saida-bukrs  = gs_p0001-bukrs.
+          ms_saida-butxt  = gs_t001-butxt.
+          ms_saida-werks  = gs_p0001-werks.
+          ms_saida-name1  = gs_t500p-name1.
+          ms_saida-btrtl  = gs_p0001-btrtl.
+          ms_saida-btext  = gs_t001p-btext.
+          ms_saida-persg  = gs_p0001-persg.
+          ms_saida-ptext  = gs_t501t-ptext.
+          ms_saida-persk  = gs_p0001-persk.
+          ms_saida-ptext2 = gs_t503t-ptext.
+          ms_saida-schkz  = gs_p0007-schkz.
+          ms_saida-data   = gs_zprojetoft03-data.
+          ms_saida-projt  = gs_zprojetoft03-projt.
+          ms_saida-protx  = gs_zprojetoft01-protx.
+          ms_saida-horas  = gs_zprojetoft03-horas.
+
+          IF gs_zprojetoft03-horas > gs_zprojetoft02-hrmin.
+            vlr_aux = gs_zprojetoft03-horas - gs_zprojetoft02-hrmin.
+          ELSE.
+            vlr_aux = '0.0'.
+          ENDIF.
+
+          ms_saida-qtdhrext   = vlr_aux.
+          ms_saida-vlrhrext   = gs_zprojetoft02-extra.
+          ms_saida-vlrtlhrext = ms_saida-qtdhrext * ms_saida-vlrhrext.
+
+          APPEND ms_saida TO mt_saida.
+          CLEAR ms_saida.
+
+        ENDIF.
+      ENDLOOP.
 
     ENDLOOP.
 
@@ -182,6 +210,30 @@ CLASS lcl_apontamento IMPLEMENTATION.
       go_zebra = mo_alv->get_display_settings( ).
       go_zebra->set_striped_pattern( abap_true ).
 
+      IF p_sinttc = abap_false. "CASO DESMARCADO
+
+        DATA: gr_columns TYPE REF TO cl_salv_columns_table.
+        DATA: gr_column    TYPE REF TO cl_salv_column.
+
+*       Obtem as colunas
+        gr_columns = mo_alv->get_columns( ).
+
+*       Selecionar a coluna correta
+        TRY.
+            gr_column ?= gr_columns->get_column( 'QTDHREXT' ).
+            gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+
+            gr_column ?= gr_columns->get_column( 'VLRHREXT' ).
+            gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+
+            gr_column ?= gr_columns->get_column( 'VLRTLHREXT' ).
+            gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          CATCH cx_salv_not_found.
+
+        ENDTRY.
+
+      ENDIF.
+
 *     Mostra o ALV
       mo_alv->display( ). "Imprime na tela do relatório ALV
 
@@ -201,7 +253,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
               lv_tabix TYPE sy-tabix.
         lv_tabix = sy-tabix.
 
-        READ TABLE mt_saida INTO ls_saida INDEX 1.
+*        READ TABLE mt_saida INTO ls_saida INDEX 1.
 
 *       Função que passa uma estrutura para o Smartform e exibe-o (Necessário método de importação FM_NAME)
         CALL FUNCTION 'SSF_FUNCTION_MODULE_NAME'

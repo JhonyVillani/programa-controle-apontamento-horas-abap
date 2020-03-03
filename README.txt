@@ -36,7 +36,7 @@ EXTRA	Valor da hora extra						DEC		5,3														  ZABAPTRDE35_JM
 Tabela 3: PRJE – Apontamentos diários (ZPROJETOFT03_JM)
 
 Nome do campo	Descrição	Tipo	Tamanho	Observação
-PERNR	Nº Pessoal			NUMC	8		Nº Pessoal: Deve ter chave externa e ajuda de pesquisa igual dos infotipos. ZABAPTRDE36_JM
+PERNR	Nº Pessoal			NUMC	8		Nº Pessoal: Deve ter chave externa e ajuda de pesquisa igual dos infotipos. ZPROJETOFSH01_JM
 DATA	Data do apontamento	DATS	8 																					ZABAPTRDE37_JM
 PROJT	Código do projeto	CHAR	4		Deve ter chave externa com a tabela de projetos								ZABAPTRDE31_JM
 HORAS	Horas trabalhadas	DEC		5,3																					ZABAPTRDE38_JM
@@ -120,17 +120,17 @@ Exibir um formulário para cada DIA do colaborador com as informações da opç�
 (ou seja, cada linha do relatório é um formulário) exibindo o seguinte layout:
 
 *********************************************************
-*					Dados do Colaborador				*
-*Nº Pessoal				     |XXXXXXXX					*
-*Nome						 |XXXXXXXXXXXXXXXXXXXXXXXX	*
-*Plano de horário de trabalho|XXXXXXXX					*
-*********************************************************
-*					Dados do Apontamento				*
-*Data						 |XX/XX/XXXX				*
-*Total de horas apontadas	 |XX,XX						*
-*Quantidade de horas extras  |XX,XX						*
-*Valor por hora extra		 |XXX,XX					*
-*Valor total de horas extras |XXXX,XX					*
+*					Dados do Colaborador				*1
+*Nº Pessoal				     |XXXXXXXX					*2.2
+*Nome						 |XXXXXXXXXXXXXXXXXXXXXXXX	*3.2
+*Plano de horário de trabalho|XXXXXXXX					*4.2
+*********************************************************5
+*					Dados do Apontamento				*6
+*Data						 |XX/XX/XXXX				*7.2
+*Total de horas apontadas	 |XX,XX						*8.2
+*Quantidade de horas extras  |XX,XX						*9.2
+*Valor por hora extra		 |XXX,XX					*10.2
+*Valor total de horas extras |XXXX,XX					*11.2
 *********************************************************
 
 ---------------------------------------------------------------------------
