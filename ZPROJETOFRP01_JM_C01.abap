@@ -16,23 +16,23 @@ CLASS lcl_apontamento DEFINITION.
           mt_t001p TYPE TABLE OF t001p, "Descrição subárea de RH
           mt_t501t TYPE TABLE OF t501t, "Descrição Grupo Emp.
           mt_t503t TYPE TABLE OF t503t, "Descrição Sub-Grupo Emp,
-          mt_p0001 TYPE TABLE OF p0001, "Tabela com filtro select-options
-          mt_zprojetoft01 TYPE TABLE OF zprojetoft01_jm, "Tabela Apontamento de Projetos
+          mt_p0001 TYPE TABLE OF p0001. "Tabela com filtro select-options
+
+*   Tabelas relacionadas aos projetos e horas apontadas, populadas no constructor
+    DATA: mt_zprojetoft01 TYPE TABLE OF zprojetoft01_jm, "Tabela Apontamento de Projetos
           mt_zprojetoft02 TYPE TABLE OF zprojetoft02_jm, "Tabela de horas trabalhadas
           mt_zprojetoft03 TYPE TABLE OF zprojetoft03_jm. "Tabela de projetos
 
 *   Atributos de saída
     DATA: mt_saida    TYPE TABLE OF zprojetofs01_jm,
-          mt_saidastc TYPE TABLE OF zprojetofs01_jm,
-          ms_saida    TYPE zprojetofs01_jm,
-          ms_saidastc TYPE zprojetofs01_jm.
+          ms_saida    TYPE zprojetofs01_jm.
 
 *   Atributos do ALV
-    DATA: mo_alv TYPE REF TO cl_salv_table,
+    DATA: mo_alv     TYPE REF TO cl_salv_table,
           go_columns TYPE REF TO cl_salv_columns_table,
-          go_zebra TYPE REF TO cl_salv_display_settings,
+          go_zebra   TYPE REF TO cl_salv_display_settings,
           gr_columns TYPE REF TO cl_salv_columns_table,
-          gr_column    TYPE REF TO cl_salv_column.
+          gr_column  TYPE REF TO cl_salv_column.
 
     METHODS:
    constructor,
@@ -49,6 +49,7 @@ ENDCLASS.                    "lcl_apontamento DEFINITION
 CLASS lcl_apontamento IMPLEMENTATION.
   METHOD constructor.
 
+*   Populando as tabelas de informações complementares
     SELECT * "bukrs butxt
       FROM t001
       INTO TABLE mt_t001
@@ -94,8 +95,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
 
   METHOD processar.
 
-    SORT mt_zprojetoft03 BY data.
-
+*   Estruturas utilizadas no READ TABLE
     DATA: ms_p0001 TYPE p0001,
           ms_p0002 TYPE p0002,
           ms_p0007 TYPE p0007,
@@ -108,19 +108,21 @@ CLASS lcl_apontamento IMPLEMENTATION.
           ms_zprojetoft01 TYPE zprojetoft01_jm,
           ms_t001  TYPE t001. "Descrição empresas
 
-    DATA: vlr_aux       TYPE zprojetofde04_jm.
-    DATA: lv_last TYPE pernr.                            "Armazena ultimo registro
+*   Variáveis utilizadas no cálculo de horas extras
     DATA: lv_totalh     TYPE zprojetofs01_jm-totalhr.    "Armazena ultima hora apontada
-    DATA: lv_lasttl TYPE zprojetofs01_jm-vlrtlhrext.     "Armazena ultima hora apontada
+    DATA: lv_tlatual    TYPE zprojetofs01_jm-totalhr.    "Armazena ultima hora apontada
     DATA: lv_vlrtlhrext TYPE zprojetofs01_jm-vlrtlhrext. "Armazena ultima hora apontada
 
+    SORT mt_zprojetoft03 BY data.
+
+*   Lendo o infotipo p0001 e jogando na HEADER
     rp_provide_from_last p0001 space pn-begda pn-endda.
     ms_saida-pernr = p0001-pernr.
 
 *   Loop na tabela de Projetos X Apontamentos
     LOOP AT mt_zprojetoft03 INTO ms_zprojetoft03.
 
-      IF ms_zprojetoft03-pernr EQ p0001-pernr.
+      IF ms_zprojetoft03-pernr EQ p0001-pernr. "Se a iteração é o mesmo pernr da header
 
         CLEAR ms_zprojetoft01.
         READ TABLE mt_zprojetoft01 INTO ms_zprojetoft01 WITH KEY projt = ms_zprojetoft03-projt. "Projetos
@@ -168,32 +170,44 @@ CLASS lcl_apontamento IMPLEMENTATION.
         ms_saida-protx  = ms_zprojetoft01-protx.
         ms_saida-horas  = ms_zprojetoft03-horas.
 
-        IF p_sinttc = abap_false. "CASO DESMARCADO
+        IF p_sinttc = abap_false. "CASO SINTÉTICO DESMARCADO
           APPEND ms_saida TO mt_saida.
-        ELSE.
+        ELSE. "CASO SINTÉTICO MARCADO
 
-          lv_totalh = lv_totalh + ms_zprojetoft03-horas. "Auxiliar
+*         Armazena um total atual
+          lv_tlatual =  lv_tlatual + ms_zprojetoft03-horas. "Somará as horas do próximo projeto
+
+*         Verifica se total atual recebeu novas adições de horas
+          IF lv_tlatual > lv_totalh.
+
+*           Armazena a informação
+            lv_totalh = lv_tlatual.
+
+*         Caso o total atual for o mesmo o total armazenado, pula para a próxima iteração
+          ELSE.
+            CONTINUE.
+          ENDIF.
 
 *         Verifica se o total de horas gerou EXTRA
-          IF lv_totalh > ms_zprojetoft02-hrmin.
-
-            ms_saida-totalhr = lv_totalh.
+          IF lv_tlatual > ms_zprojetoft02-hrmin.
+            ms_saida-totalhr = lv_tlatual.
             ms_saida-qtdhrext = ms_saida-totalhr - ms_zprojetoft02-hrmin.
             ms_saida-vlrhrext   = ms_zprojetoft02-extra.
             ms_saida-vlrtlhrext = lv_vlrtlhrext.
             ms_saida-vlrtlhrext = ms_saida-qtdhrext * ms_saida-vlrhrext.
-            APPEND ms_saida TO mt_saida.
-
           ENDIF.
 
-        ENDIF.
-        CLEAR ms_saida.
+        ENDIF. "Verificação SE SINTÉTICO
 
-      ENDIF.
+      ENDIF. "Verificação do pernr
 
     ENDLOOP.
 
-    SORT mt_saida BY vlrtlhrext.
+*   Apenda informações do CASO SINTÉTICO MARCADO pós-loop
+    IF p_sinttc = abap_true AND ms_saida-totalhr > ms_zprojetoft02-hrmin. "CASO MARCADO
+      APPEND ms_saida TO mt_saida.
+      CLEAR ms_saida.
+    ENDIF.
 
   ENDMETHOD.                    "processar
 
