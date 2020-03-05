@@ -24,7 +24,8 @@ CLASS lcl_apontamento DEFINITION.
 *   Atributos de saída
     DATA: mt_saida    TYPE TABLE OF zprojetofs01_jm,
           mt_saidastc TYPE TABLE OF zprojetofs01_jm,
-          ms_saida    TYPE zprojetofs01_jm.
+          ms_saida    TYPE zprojetofs01_jm,
+          ms_saidastc TYPE zprojetofs01_jm.
 
 *   Atributos do ALV
     DATA: mo_alv TYPE REF TO cl_salv_table,
@@ -107,96 +108,92 @@ CLASS lcl_apontamento IMPLEMENTATION.
           ms_zprojetoft01 TYPE zprojetoft01_jm,
           ms_t001  TYPE t001. "Descrição empresas
 
-    DATA: vlr_aux TYPE zprojetofde04_jm.
-    DATA: lv_last TYPE p0001-pernr. "Armazena ultimo registro
-    DATA: lv_lasthr TYPE zprojetoft03_jm-horas.
+    DATA: vlr_aux       TYPE zprojetofde04_jm.
+    DATA: lv_last TYPE pernr.                            "Armazena ultimo registro
+    DATA: lv_totalh     TYPE zprojetofs01_jm-totalhr.    "Armazena ultima hora apontada
+    DATA: lv_lasttl TYPE zprojetofs01_jm-vlrtlhrext.     "Armazena ultima hora apontada
+    DATA: lv_vlrtlhrext TYPE zprojetofs01_jm-vlrtlhrext. "Armazena ultima hora apontada
+
+    rp_provide_from_last p0001 space pn-begda pn-endda.
+    ms_saida-pernr = p0001-pernr.
 
 *   Loop na tabela de Projetos X Apontamentos
     LOOP AT mt_zprojetoft03 INTO ms_zprojetoft03.
 
-*     Loop na tabela pa0001
-      LOOP AT p0001 INTO ms_p0001.
-        IF ms_zprojetoft03-pernr EQ ms_p0001-pernr.
+      IF ms_zprojetoft03-pernr EQ p0001-pernr.
 
-          CLEAR ms_zprojetoft01.
-          READ TABLE mt_zprojetoft01 INTO ms_zprojetoft01 WITH KEY projt = ms_zprojetoft03-projt. "Projetos
+        CLEAR ms_zprojetoft01.
+        READ TABLE mt_zprojetoft01 INTO ms_zprojetoft01 WITH KEY projt = ms_zprojetoft03-projt. "Projetos
 
-          CLEAR ms_p0002.
-          READ TABLE p0002 INTO ms_p0002 WITH KEY pernr = pernr-pernr. "Desc. Pessoa
+        CLEAR ms_p0002.
+        READ TABLE p0002 INTO ms_p0002 WITH KEY pernr = p0001-pernr. "Desc. Pessoa
 
-          CLEAR ms_t001.
-          READ TABLE mt_t001 INTO ms_t001 WITH KEY bukrs = ms_p0001-bukrs. "Desc Empresa
+        CLEAR ms_t001.
+        READ TABLE mt_t001 INTO ms_t001 WITH KEY bukrs = p0001-bukrs. "Desc Empresa
 
-          CLEAR ms_t500p.
-          READ TABLE mt_t500p INTO ms_t500p WITH KEY bukrs = ms_p0001-bukrs "Desc Área de RH
-                                                     persa = ms_p0001-werks.
+        CLEAR ms_t500p.
+        READ TABLE mt_t500p INTO ms_t500p WITH KEY bukrs = p0001-bukrs "Desc Área de RH
+                                                   persa = p0001-werks.
 
-          CLEAR ms_t001p.
-          READ TABLE mt_t001p INTO ms_t001p WITH KEY werks = ms_p0001-werks. "Desc Sub RH
+        CLEAR ms_t001p.
+        READ TABLE mt_t001p INTO ms_t001p WITH KEY werks = p0001-werks. "Desc Sub RH
 
-          CLEAR ms_t501t.
-          READ TABLE mt_t501t INTO ms_t501t WITH KEY persg = ms_p0001-persg. "Desc Grupo Emp.
+        CLEAR ms_t501t.
+        READ TABLE mt_t501t INTO ms_t501t WITH KEY persg = p0001-persg. "Desc Grupo Emp.
 
-          CLEAR ms_t503t.
-          READ TABLE mt_t503t INTO ms_t503t WITH KEY persk = ms_p0001-persk. "Desc Sub-Grupo Emp.
+        CLEAR ms_t503t.
+        READ TABLE mt_t503t INTO ms_t503t WITH KEY persk = p0001-persk. "Desc Sub-Grupo Emp.
 
-          CLEAR ms_p0007.
-          READ TABLE p0007[] INTO ms_p0007 WITH KEY pernr = pernr-pernr. "Desc Sub-Grupo Emp.
+        CLEAR ms_p0007.
+        READ TABLE p0007[] INTO ms_p0007 WITH KEY pernr = pernr-pernr. "Desc Sub-Grupo Emp.
 
-          CLEAR ms_zprojetoft02.
-          READ TABLE mt_zprojetoft02 INTO ms_zprojetoft02 WITH KEY schkz = ms_p0007-schkz. "Horas de trabalho
+        CLEAR ms_zprojetoft02.
+        READ TABLE mt_zprojetoft02 INTO ms_zprojetoft02 WITH KEY schkz = ms_p0007-schkz. "Horas de trabalho
 
-          ms_saida-pernr  = ms_p0001-pernr.
-          ms_saida-cname  = ms_p0002-cname.
-          ms_saida-bukrs  = ms_p0001-bukrs.
-          ms_saida-butxt  = ms_t001-butxt.
-          ms_saida-werks  = ms_p0001-werks.
-          ms_saida-name1  = ms_t500p-name1.
-          ms_saida-btrtl  = ms_p0001-btrtl.
-          ms_saida-btext  = ms_t001p-btext.
-          ms_saida-persg  = ms_p0001-persg.
-          ms_saida-ptext  = ms_t501t-ptext.
-          ms_saida-persk  = ms_p0001-persk.
-          ms_saida-ptext2 = ms_t503t-ptext.
-          ms_saida-schkz  = ms_p0007-schkz.
-          ms_saida-data   = ms_zprojetoft03-data.
-          ms_saida-projt  = ms_zprojetoft03-projt.
-          ms_saida-protx  = ms_zprojetoft01-protx.
-          ms_saida-horas  = ms_zprojetoft03-horas.
+        ms_saida-pernr  = p0001-pernr.
+        ms_saida-cname  = ms_p0002-cname.
+        ms_saida-bukrs  = p0001-bukrs.
+        ms_saida-butxt  = ms_t001-butxt.
+        ms_saida-werks  = p0001-werks.
+        ms_saida-name1  = ms_t500p-name1.
+        ms_saida-btrtl  = p0001-btrtl.
+        ms_saida-btext  = ms_t001p-btext.
+        ms_saida-persg  = p0001-persg.
+        ms_saida-ptext  = ms_t501t-ptext.
+        ms_saida-persk  = p0001-persk.
+        ms_saida-ptext2 = ms_t503t-ptext.
+        ms_saida-schkz  = ms_p0007-schkz.
+        ms_saida-data   = ms_zprojetoft03-data.
+        ms_saida-projt  = ms_zprojetoft03-projt.
+        ms_saida-protx  = ms_zprojetoft01-protx.
+        ms_saida-horas  = ms_zprojetoft03-horas.
 
-*         IF p_sinttc = abap_true. "CASO MARCADO
-          IF lv_last EQ gs_p0001-pernr.
-            ms_saida-totalhr = ms_zprojetoft03-horas + lv_lasthr.
-          ELSE.
-            ms_saida-totalhr = ms_zprojetoft03-horas.
-            lv_last = ms_p0001-pernr.
-            lv_lasthr = ms_zprojetoft03-horas.
-          ENDIF.
+        IF p_sinttc = abap_false. "CASO DESMARCADO
+          APPEND ms_saida TO mt_saida.
+        ELSE.
 
-          IF ms_zprojetoft03-horas > ms_zprojetoft02-hrmin.
-            vlr_aux = ms_zprojetoft03-horas - ms_zprojetoft02-hrmin.
-          ELSE.
-            vlr_aux = '0.0'.
-          ENDIF.
+          lv_totalh = lv_totalh + ms_zprojetoft03-horas. "Auxiliar
 
-          ms_saida-qtdhrext   = vlr_aux.
-          ms_saida-vlrhrext   = ms_zprojetoft02-extra.
-          ms_saida-vlrtlhrext = ms_saida-qtdhrext * ms_saida-vlrhrext.
+*         Verifica se o total de horas gerou EXTRA
+          IF lv_totalh > ms_zprojetoft02-hrmin.
 
-          IF p_sinttc EQ 'X'.
-            IF ms_saida-qtdhrext > 0.
-              APPEND ms_saida TO mt_saida.
-            ENDIF.
-          ELSE.
+            ms_saida-totalhr = lv_totalh.
+            ms_saida-qtdhrext = ms_saida-totalhr - ms_zprojetoft02-hrmin.
+            ms_saida-vlrhrext   = ms_zprojetoft02-extra.
+            ms_saida-vlrtlhrext = lv_vlrtlhrext.
+            ms_saida-vlrtlhrext = ms_saida-qtdhrext * ms_saida-vlrhrext.
             APPEND ms_saida TO mt_saida.
-          ENDIF.
 
-          CLEAR ms_saida.
+          ENDIF.
 
         ENDIF.
-      ENDLOOP.
+        CLEAR ms_saida.
+
+      ENDIF.
 
     ENDLOOP.
+
+    SORT mt_saida BY vlrtlhrext.
 
   ENDMETHOD.                    "processar
 
@@ -251,8 +248,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
         gr_column ?= gr_columns->get_column( 'PROTX ' ).
         gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
         gr_column ?= gr_columns->get_column( 'HORAS ' ).
-
-*        delete mt_saida where.
+        gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
 
       ELSE.
 
