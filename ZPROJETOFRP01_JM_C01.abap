@@ -10,23 +10,23 @@
 CLASS lcl_apontamento DEFINITION.
   PUBLIC SECTION.
 
-*   Tabelas complementares populadas no constructor
+    "Tabelas complementares populadas no constructor
     DATA: mt_t001  TYPE TABLE OF t001,  "Descrição empresas
           mt_t500p TYPE TABLE OF t500p, "Descrição área de RH
           mt_t001p TYPE TABLE OF t001p, "Descrição subárea de RH
           mt_t501t TYPE TABLE OF t501t, "Descrição Grupo Emp.
           mt_t503t TYPE TABLE OF t503t. "Descrição Sub-Grupo Emp.
 
-*   Tabelas relacionadas aos projetos e horas apontadas, populadas no constructor
+    "Tabelas relacionadas aos projetos e horas apontadas, populadas no constructor
     DATA: mt_zprojetoft01 TYPE TABLE OF zprojetoft01_jm, "Tabela Apontamento de Projetos
           mt_zprojetoft02 TYPE TABLE OF zprojetoft02_jm, "Tabela de horas trabalhadas
           mt_zprojetoft03 TYPE TABLE OF zprojetoft03_jm. "Tabela de projetos
 
-*   Atributos de saída
+    "Atributos de saída
     DATA: mt_saida    TYPE TABLE OF zprojetofs01_jm,
           ms_saida    TYPE zprojetofs01_jm.
 
-*   Atributos do ALV
+    "Atributos do ALV
     DATA: mo_alv     TYPE REF TO cl_salv_table,
           go_columns TYPE REF TO cl_salv_columns_table,
           go_zebra   TYPE REF TO cl_salv_display_settings,
@@ -207,11 +207,14 @@ CLASS lcl_apontamento IMPLEMENTATION.
 *     Criando o relatório ALV, declarando na classe a variáveis mo_alv referenciando cl_salv_table
 *     Chama o método que constrói a saída ALV
 *---------------------------------------------------------------------------------
-    CALL METHOD cl_salv_table=>factory
-      IMPORTING
-        r_salv_table = mo_alv
-      CHANGING
-        t_table      = mt_saida.
+    TRY.
+        CALL METHOD cl_salv_table=>factory
+          IMPORTING
+            r_salv_table = mo_alv
+          CHANGING
+            t_table      = mt_saida.
+      CATCH cx_salv_msg.
+    ENDTRY.
 
     "Otimiza tamanho das colunas
     go_columns = mo_alv->get_columns( ). "Retorna o objeto tipo coluna INSTANCIADO
@@ -230,46 +233,53 @@ CLASS lcl_apontamento IMPLEMENTATION.
 
 *     Métodos que recebem uma coluna a ser oculta e na sequência oculta a mesma
 *------------------------------------------------------------------------------
-      gr_column ?= gr_columns->get_column( 'BUKRS ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'BUTXT ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'WERKS ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'NAME1 ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'BTRTL ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'BTEXT ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'PERSG ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'PTEXT ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'PERSK ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'PTEXT2' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'PROJT ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'PROTX ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'HORAS ' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+      TRY.
+          gr_column ?= gr_columns->get_column( 'BUKRS ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'BUTXT ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'WERKS ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'NAME1 ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'BTRTL ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'BTEXT ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'PERSG ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'PTEXT ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'PERSK ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'PTEXT2' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'PROJT ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'PROTX ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'HORAS ' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
 
 *     CASO SAÍDA SINTÉTICA DESMARCADA
 *-----------------------------------------------------------------
     ELSE.
 
-*     Selecionar a coluna correta
-      gr_column ?= gr_columns->get_column( 'TOTALHR' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'QTDHREXT' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'VLRHREXT' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
-      gr_column ?= gr_columns->get_column( 'VLRTLHREXT' ).
-      gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+*     Métodos que recebem uma coluna a ser oculta e na sequência oculta a mesma
+*------------------------------------------------------------------------------
+      TRY.
+          gr_column ?= gr_columns->get_column( 'TOTALHR' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'QTDHREXT' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'VLRHREXT' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+          gr_column ?= gr_columns->get_column( 'VLRTLHREXT' ).
+          gr_column->set_technical( value = if_salv_c_bool_sap=>true ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
 
     ENDIF.
 
