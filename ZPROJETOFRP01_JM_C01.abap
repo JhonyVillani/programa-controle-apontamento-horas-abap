@@ -38,7 +38,8 @@ CLASS lcl_apontamento DEFINITION.
    processar,
    alv,
    smart,
-   rebase.
+   rebase,
+   verifica.
 
 ENDCLASS.                    "lcl_apontamento DEFINITION
 
@@ -91,6 +92,13 @@ CLASS lcl_apontamento IMPLEMENTATION.
      WHERE pernr IN pnppernr
        AND projt IN so_projt.
 
+*     Verifica se a seleção obteve resultados
+*--------------------------------------------
+    IF sy-subrc IS NOT INITIAL.
+      MESSAGE s001(00) WITH text-m01 DISPLAY LIKE 'E'.
+      LEAVE LIST-PROCESSING.
+    ENDIF.
+
   ENDMETHOD.                    "constructor
 
   METHOD processar.
@@ -113,9 +121,8 @@ CLASS lcl_apontamento IMPLEMENTATION.
     DATA: lv_tlatual    TYPE zprojetofs01_jm-totalhr.    "Armazena ultima hora apontada
     DATA: lv_vlrtlhrext TYPE zprojetofs01_jm-vlrtlhrext. "Armazena ultima hora apontada
 
-
 *     Loop na tabela de Projetos X Apontamentos
-*--------------------------------------------------------------------------------------
+*--------------------------------------------------------------------------------------------------------------------------
     LOOP AT mt_zprojetoft03 INTO ms_zprojetoft03.
 
       "Se a iteração é o mesmo pernr da header e a data for igual ao do PNPCE
@@ -142,7 +149,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
         READ TABLE mt_zprojetoft02 INTO ms_zprojetoft02 WITH KEY schkz = p0007-schkz. "Horas de trabalho
 
 *     Atribuições de variáveis
-*------------------------------------
+*-------------------------------------
         ms_saida-pernr  = p0001-pernr.
         ms_saida-cname  = p0002-cname.
         ms_saida-bukrs  = p0001-bukrs.
@@ -181,7 +188,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
           APPEND ms_saida TO mt_saida.
 
 *     CASO SINTÉTICO MARCADO
-*----------------------------------------------------------------------------
+*-----------------------------------------------------------------------------
         ELSE.
           "Calcula o total de horas apontadas
           lv_totalh = lv_totalh + ms_zprojetoft03-horas.
@@ -194,6 +201,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
             ms_saida-vlrtlhrext = ms_saida-qtdhrext * ms_saida-vlrhrext.
             APPEND ms_saida TO mt_saida.
           ENDIF.
+
         ENDIF. "Verificação SE SINTÉTICO
 
       ENDIF. "Verificação do pernr
@@ -206,7 +214,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
 
 *     Criando o relatório ALV, declarando na classe a variáveis mo_alv referenciando cl_salv_table
 *     Chama o método que constrói a saída ALV
-*---------------------------------------------------------------------------------
+*-------------------------------------------------------------------------------------------------
     TRY.
         CALL METHOD cl_salv_table=>factory
           IMPORTING
@@ -300,7 +308,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
           ls_saida              TYPE zprojetofs01_jm. "Do tipo da estrutura SE11 criada para exibição
 
 *     Loop na tabela final (Enviando dados via WORK-AREA para o Smartform)
-*-------------------------------------------------------------------------------------------------------
+*-------------------------------------------------------------------------
     LOOP AT mt_saida INTO ls_saida.
 
 *     Declarações de variáveis a serem utilizadas no Case que verifica a quantidade de páginas via LOOP
@@ -414,5 +422,16 @@ CLASS lcl_apontamento IMPLEMENTATION.
     SORT mt_saida BY pernr.
 
   ENDMETHOD.                    "rebase
+
+  METHOD verifica.
+
+*     Verifica se a tabela está vazia e retorna para a tela de seleção
+*---------------------------------------------------------------------
+    IF mt_saida IS INITIAL.
+      MESSAGE s001(00) WITH text-m02 DISPLAY LIKE 'E'.
+      LEAVE LIST-PROCESSING.
+    ENDIF.
+
+  ENDMETHOD.                    "verifica
 
 ENDCLASS.                    "lcl_apontamento IMPLEMENTATION
