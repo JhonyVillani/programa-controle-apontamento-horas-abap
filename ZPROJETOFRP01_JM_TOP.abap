@@ -8,7 +8,7 @@ INFOTYPES: 0001,
 
 TABLES:
         pernr,
-        zprojetoft01_jm.
+        zprojetoft03_jm.
 
 NODES peras.
 

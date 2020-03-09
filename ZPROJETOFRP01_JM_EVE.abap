@@ -23,18 +23,6 @@
       "Pula iteração caso verdadeiro, para cada PERNR do select-options
       REJECT.
 
-    ELSEIF p0001-bukrs NOT IN pnpbukrs.
-      "Pula iteração do campo Empresa
-      REJECT.
-
-    ELSEIF p0001-werks NOT IN pnpwerks.
-      "Pula iteração da Área de RH
-      REJECT.
-
-    ELSEIF p0001-btrtl NOT IN pnpbtrtl.
-      "Pula iteração da Sub-Área de RH
-      REJECT.
-
     ENDIF.
 
 *     Inicia o processamento dos dados encontrados no Select-Options
