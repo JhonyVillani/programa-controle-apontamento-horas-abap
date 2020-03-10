@@ -7,6 +7,11 @@
   DATA:
         go_apontamento TYPE REF TO lcl_apontamento. "Classe local
 
+  "No momento que for requisitado um valor, preencherá a variável p_file
+
+  AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
+    lcl_apontamento=>save_file( ). "Chamada de método estático devido não existir instâncias de objetos
+
   START-OF-SELECTION.
 
     CREATE OBJECT go_apontamento.
@@ -22,7 +27,6 @@
     IF p0007-schkz NOT IN so_schkz.
       "Pula iteração caso verdadeiro, para cada PERNR do select-options
       REJECT.
-
     ENDIF.
 
 *     Inicia o processamento dos dados encontrados no Select-Options
@@ -39,12 +43,17 @@
     "Realiza uma apuração dos dados de saída sintética
     go_apontamento->rebase( ).
 
-    IF p_smart IS INITIAL.
+*     Valida qual radio button está ativo e chama o respectivo método
+*--------------------------------------------------------------------
+    IF p_alv IS NOT INITIAL.
 
       go_apontamento->alv( ).
 
-    ELSE.
+    ELSEIF p_smart IS NOT INITIAL.
 
       go_apontamento->smart( ).
+
+    ELSE.
+      go_apontamento->leitura_dados( ).
 
     ENDIF.

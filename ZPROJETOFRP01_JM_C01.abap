@@ -33,13 +33,23 @@ CLASS lcl_apontamento DEFINITION.
           gr_columns TYPE REF TO cl_salv_columns_table,
           gr_column  TYPE REF TO cl_salv_column.
 
+*     Variável de classe, que precisa ser chamada extaticamente
+*--------------------------------------------------------------
+    CLASS-DATA: mv_nome_do_arquiv TYPE string.
+
     METHODS:
    constructor,
    processar,
    alv,
    smart,
    rebase,
-   verifica.
+   verifica,
+   leitura_dados.
+
+*     Função que precisa ser chamada estaticamente
+*-------------------------------------------------
+    CLASS-METHODS:
+save_file.
 
 ENDCLASS.                    "lcl_apontamento DEFINITION
 
@@ -93,9 +103,11 @@ CLASS lcl_apontamento IMPLEMENTATION.
        AND projt IN so_projt.
 
 *     Verifica se a seleção obteve resultados
-*--------------------------------------------
+*-----------------------------------------------------
     IF sy-subrc IS NOT INITIAL.
       MESSAGE s001(00) WITH text-m01 DISPLAY LIKE 'E'.
+
+      "Retorna para a tela de seleção
       LEAVE LIST-PROCESSING.
     ENDIF.
 
@@ -183,7 +195,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
         ms_saida-horas  = ms_zprojetoft03-horas.
 
 *     CASO SINTÉTICO DESMARCADO
-*------------------------------------
+*-------------------------------------
         IF p_sinttc = abap_false.
           APPEND ms_saida TO mt_saida.
 
@@ -300,21 +312,22 @@ CLASS lcl_apontamento IMPLEMENTATION.
 
 *     Declarações do smartform
 *----------------------------------------------------------------------------------------------------
-    DATA:
-          lv_fm_name            TYPE rs38l_fnam,
+    DATA: lv_fm_name            TYPE rs38l_fnam,
           ls_control_parameters TYPE ssfctrlop,
           ls_output_options     TYPE ssfcompop,
           ls_job_output_info    TYPE ssfcrescl,
           ls_saida              TYPE zprojetofs01_jm. "Do tipo da estrutura SE11 criada para exibição
 
 *     Loop na tabela final (Enviando dados via WORK-AREA para o Smartform)
-*-------------------------------------------------------------------------
+*-------------------------------------------------------------------------------------------------------
     LOOP AT mt_saida INTO ls_saida.
 
 *     Declarações de variáveis a serem utilizadas no Case que verifica a quantidade de páginas via LOOP
 *------------------------------------------------------------------------------------------------------
       DATA: lv_lines TYPE i,
             lv_tabix TYPE sy-tabix.
+
+      "Atribuição de contador
       lv_tabix = sy-tabix.
 
 *     Função que passa uma estrutura para o Smartform e exibe-o (Necessário método de importação FM_NAME)
@@ -380,7 +393,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
   METHOD rebase.
 
 *     Atributos de saída do método que Refina informações sintéticas
-*-------------------------------------------------------------------
+*--------------------------------------------------------------------
     DATA: mt_saidastc TYPE TABLE OF zprojetofs01_jm,
           ms_saidastc TYPE zprojetofs01_jm,
           mv_pernr    TYPE zprojetofs01_jm-pernr,
@@ -429,9 +442,175 @@ CLASS lcl_apontamento IMPLEMENTATION.
 *---------------------------------------------------------------------
     IF mt_saida IS INITIAL.
       MESSAGE s001(00) WITH text-m02 DISPLAY LIKE 'E'.
+
+      "Retorna à tela de seleção
       LEAVE LIST-PROCESSING.
     ENDIF.
 
   ENDMETHOD.                    "verifica
+
+  METHOD leitura_dados.
+
+*     Verifica se o campo PATH está preenchido
+*--------------------------------------------------------------
+    IF p_file IS NOT INITIAL.
+
+      "Define um TYPES com saídas em formato de STRING
+      TYPES: BEGIN OF ty_s_linha_arquivo,
+              linha TYPE c LENGTH 1000,
+             END OF   ty_s_linha_arquivo.
+
+      "Declarações de variáveis a serem utilizadas na função DOWNLOAD
+      DATA: lv_nome_do_arquiv TYPE string,
+            lt_data_tab       TYPE TABLE OF ty_s_linha_arquivo,
+            ls_data_tab       TYPE ty_s_linha_arquivo,
+            ls_saida          TYPE zprojetofs01_jm.
+
+
+      "Declarações para calcular campo NOME do arquivo
+      DATA: lv_posicao  TYPE i,
+            lv_comp_dir TYPE i.
+
+
+*     Obtem tamanho total da String NOME do ARQUIVO
+*--------------------------------------------------
+      lv_comp_dir = strlen( p_file ).
+      lv_posicao  = lv_comp_dir - 1. "Sem o -1, o campo vem com um caracter a mais
+
+      "Enquanto maior que zero, percorre o campo PATH
+      WHILE lv_posicao > 0.
+
+        IF p_file+lv_posicao(1) EQ '\'.
+          lv_posicao = lv_posicao + 1. "Obteremos o tamanho do NOME do ARQUIVO
+          EXIT.
+        ENDIF.
+
+        "Percorre retroativamente o campo PATH subtraindo uma posição
+        lv_posicao = lv_posicao - 1.
+
+      ENDWHILE.
+
+      "Obtemos o tamanho do PATH
+      lv_comp_dir = lv_comp_dir - lv_posicao.
+
+      "Obtemos o nome do arquivo (Sem path)
+      lv_nome_do_arquiv = p_file+lv_posicao(lv_comp_dir).
+
+*     Definindo "Header Line" da tabela a ser exportada
+*-----------------------------------------------------------------------------------
+      ls_data_tab-linha = 'Nº pessoal;Nome;Empresa;Desc. Empresa;'
+                        &&'Área RH;Desc. RH;Sub área RH;Desc. Sub área RH;Grupo RH;'
+                        &&'Desc. Grupo;Subgrupo RH;Desc. Subgrupo;Carga Horária;'
+                        &&'Dt. Apont; Cód. Proj;Projeto;Horas apont;Total Hrs.;'
+                        &&'Qtd. Hrs. Extras;Valor Hr; Vlr Total Hrs. Ext.'.
+
+      "Appenda o Header
+      APPEND ls_data_tab TO lt_data_tab.
+      CLEAR ls_data_tab.
+
+*     Loop para cada informação da tabela final, appendando como uma String única
+*--------------------------------------------------------------------------------
+      LOOP AT mt_saida INTO ls_saida.
+
+        ls_data_tab-linha = ls_saida-pernr    && ';' "Nº pessoal
+                         && ls_saida-cname    && ';' "Nome
+                         && ls_saida-bukrs    && ';' "Empresa
+                         && ls_saida-butxt    && ';' "Nome Empresa
+                         && ls_saida-werks    && ';' "Área RH
+                         && ls_saida-name1    && ';' "Desc. RH
+                         && ls_saida-btrtl    && ';' "Sub-Área RH
+                         && ls_saida-btext    && ';' "Desc. Sub área RH
+                         && ls_saida-persg    && ';' "Grupo RH
+                         && ls_saida-ptext    && ';' "Desc. Grupo
+                         && ls_saida-persk    && ';' "Subgrupo RH
+                         && ls_saida-ptext2   && ';' "Desc. Subgrupo
+                         && ls_saida-schkz    && ';' "Carga Horária
+                         && ls_saida-data     && ';'
+                         && ls_saida-projt    && ';'
+                         && ls_saida-protx    && ';'
+                         && ls_saida-horas    && ';'
+                         && ls_saida-totalhr  && ';'
+                         && ls_saida-qtdhrext && ';'
+                         && ls_saida-vlrhrext && ';'
+                         && ls_saida-vlrtlhrext.
+
+        "Appenda uma String na tabela
+        APPEND ls_data_tab TO lt_data_tab.
+        CLEAR ls_data_tab.
+
+      ENDLOOP.
+
+*     Função que exporta o arquivo para o computador local
+*---------------------------------------------------------
+      CALL METHOD cl_gui_frontend_services=>gui_download
+        EXPORTING
+          filename                = lv_nome_do_arquiv
+        CHANGING
+          data_tab                = lt_data_tab
+        EXCEPTIONS
+          file_write_error        = 1
+          no_batch                = 2
+          gui_refuse_filetransfer = 3
+          invalid_type            = 4
+          no_authority            = 5
+          unknown_error           = 6
+          header_not_allowed      = 7
+          separator_not_allowed   = 8
+          filesize_not_allowed    = 9
+          header_too_long         = 10
+          dp_error_create         = 11
+          dp_error_send           = 12
+          dp_error_write          = 13
+          unknown_dp_error        = 14
+          access_denied           = 15
+          dp_out_of_memory        = 16
+          disk_full               = 17
+          dp_timeout              = 18
+          file_not_found          = 19
+          dataprovider_exception  = 20
+          control_flush_error     = 21
+          not_supported_by_gui    = 22
+          error_no_gui            = 23
+          OTHERS                  = 24.
+
+    ENDIF. "Fim se o campo PATH está preenchido
+
+  ENDMETHOD.                    "leitura_dados
+
+  METHOD save_file.
+
+*     Declarações de variáveis da função file_save_dialog
+*--------------------------------------------------------------------------
+    DATA: lv_filename    TYPE string,
+          lv_path        TYPE string,
+          lv_fullpath    TYPE string,
+          lv_defaultname TYPE string.
+
+    "Concatena o nome padrão do arquivo com a data
+    CONCATENATE 'Apont Horas Extras' sy-datum INTO lv_defaultname SEPARATED BY space.
+
+*     Função que abre a caixa de diálogo no Select-Options
+*-------------------------------------------------------------
+    CALL METHOD cl_gui_frontend_services=>file_save_dialog
+      EXPORTING
+        window_title              = 'Salvar Relatório'
+        default_extension         = 'csv'
+        default_file_name         = lv_defaultname
+        initial_directory         = 'C:\Users\ITZ37\Downloads'
+        prompt_on_overwrite       = 'X'
+      CHANGING
+        filename                  = lv_filename
+        path                      = lv_path
+        fullpath                  = lv_fullpath
+      EXCEPTIONS
+        cntl_error                = 1
+        error_no_gui              = 2
+        not_supported_by_gui      = 3
+        invalid_default_file_name = 4
+        OTHERS                    = 5.
+
+    p_file = lv_fullpath.
+
+  ENDMETHOD.                    "save_file
 
 ENDCLASS.                    "lcl_apontamento IMPLEMENTATION
