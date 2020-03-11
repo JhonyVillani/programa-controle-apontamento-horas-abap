@@ -461,40 +461,10 @@ CLASS lcl_apontamento IMPLEMENTATION.
              END OF   ty_s_linha_arquivo.
 
       "Declarações de variáveis a serem utilizadas na função DOWNLOAD
-      DATA: lv_nome_do_arquiv TYPE string,
+      DATA: lv_filename  TYPE string,
             lt_data_tab       TYPE TABLE OF ty_s_linha_arquivo,
             ls_data_tab       TYPE ty_s_linha_arquivo,
             ls_saida          TYPE zprojetofs01_jm.
-
-
-      "Declarações para calcular campo NOME do arquivo
-      DATA: lv_posicao  TYPE i,
-            lv_comp_dir TYPE i.
-
-
-*     Obtem tamanho total da String NOME do ARQUIVO
-*--------------------------------------------------
-      lv_comp_dir = strlen( p_file ).
-      lv_posicao  = lv_comp_dir - 1. "Sem o -1, o campo vem com um caracter a mais
-
-      "Enquanto maior que zero, percorre o campo PATH
-      WHILE lv_posicao > 0.
-
-        IF p_file+lv_posicao(1) EQ '\'.
-          lv_posicao = lv_posicao + 1. "Obteremos o tamanho do NOME do ARQUIVO
-          EXIT.
-        ENDIF.
-
-        "Percorre retroativamente o campo PATH subtraindo uma posição
-        lv_posicao = lv_posicao - 1.
-
-      ENDWHILE.
-
-      "Obtemos o tamanho do PATH
-      lv_comp_dir = lv_comp_dir - lv_posicao.
-
-      "Obtemos o nome do arquivo (Sem path)
-      lv_nome_do_arquiv = p_file+lv_posicao(lv_comp_dir).
 
 *     Definindo "Header Line" da tabela a ser exportada
 *-----------------------------------------------------------------------------------
@@ -540,11 +510,17 @@ CLASS lcl_apontamento IMPLEMENTATION.
 
       ENDLOOP.
 
+*     Concatena o nome padrão do arquivo com a data e hora para saída
+*------------------------------------------------------------------------------------------------------------
+      CONCATENATE p_file '\' 'Apont Horas Extras' '_' sy-datum+6(2)'-' sy-datum+4(2) '-' sy-datum(4) '_'
+                                                      sy-uzeit(2) '-'  sy-uzeit+2(2) '-' sy-uzeit+4(2) '.csv'
+                                                      INTO lv_filename.
+
 *     Função que exporta o arquivo para o computador local
 *---------------------------------------------------------
       CALL METHOD cl_gui_frontend_services=>gui_download
         EXPORTING
-          filename                = lv_nome_do_arquiv
+          filename                = lv_filename
         CHANGING
           data_tab                = lt_data_tab
         EXCEPTIONS
@@ -573,41 +549,32 @@ CLASS lcl_apontamento IMPLEMENTATION.
           error_no_gui            = 23
           OTHERS                  = 24.
 
+      "Se não estiver preenchido
+    ELSE.
+      MESSAGE s001(00) WITH text-m03 DISPLAY LIKE 'E'.
+
+      "Retorna à tela de seleção
+      LEAVE LIST-PROCESSING.
     ENDIF. "Fim se o campo PATH está preenchido
 
   ENDMETHOD.                    "leitura_dados
 
   METHOD save_file.
 
-*     Declarações de variáveis da função file_save_dialog
-*--------------------------------------------------------------------------
-    DATA: lv_filename    TYPE string,
-          lv_path        TYPE string,
-          lv_fullpath    TYPE string,
-          lv_defaultname TYPE string.
-
-    "Concatena o nome padrão do arquivo com a data
-    CONCATENATE 'Apont Horas Extras' sy-datum INTO lv_defaultname SEPARATED BY space.
+*     Declarações de variáveis da função directory_browse
+*--------------------------------------------------------
+    DATA: lv_fullpath    TYPE string.
 
 *     Função que abre a caixa de diálogo no Select-Options
-*-------------------------------------------------------------
-    CALL METHOD cl_gui_frontend_services=>file_save_dialog
-      EXPORTING
-        window_title              = 'Salvar Relatório'
-        default_extension         = 'csv'
-        default_file_name         = lv_defaultname
-        initial_directory         = 'C:\Users\ITZ37\Downloads'
-        prompt_on_overwrite       = 'X'
+*---------------------------------------------------------
+    CALL METHOD cl_gui_frontend_services=>directory_browse
       CHANGING
-        filename                  = lv_filename
-        path                      = lv_path
-        fullpath                  = lv_fullpath
+        selected_folder      = lv_fullpath
       EXCEPTIONS
-        cntl_error                = 1
-        error_no_gui              = 2
-        not_supported_by_gui      = 3
-        invalid_default_file_name = 4
-        OTHERS                    = 5.
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        OTHERS               = 4.
 
     p_file = lv_fullpath.
 
