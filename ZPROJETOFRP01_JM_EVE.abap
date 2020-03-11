@@ -10,9 +10,29 @@
   "No momento que for requisitado um valor, preencherá a variável p_file
 
   AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
-    lcl_apontamento=>save_file( ). "Chamada de método estático devido não existir instâncias de objetos
+
+    "Chamada de método estático devido não existir instâncias de objetos
+    lcl_apontamento=>save_file( ).
 
   START-OF-SELECTION.
+
+*     Verifica se o RADIO button de exportar arquivo está marcado
+*----------------------------------------------------------------
+    IF p_file IS INITIAL.
+
+      "Informa o usuário que o campo está vazio
+      MESSAGE s001(00) WITH text-m03 DISPLAY LIKE 'E'.
+
+      "Retorna à tela de seleção
+      LEAVE LIST-PROCESSING.
+
+      "Chama o método que verifica se o diretório existe
+    ELSE.
+
+      "Caso não exista, informa o usuário que o caminho não existe
+      lcl_apontamento=>verifica_diretorio( ).
+
+    ENDIF.
 
     CREATE OBJECT go_apontamento.
 

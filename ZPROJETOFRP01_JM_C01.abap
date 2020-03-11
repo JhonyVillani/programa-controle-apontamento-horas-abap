@@ -38,18 +38,19 @@ CLASS lcl_apontamento DEFINITION.
     CLASS-DATA: mv_nome_do_arquiv TYPE string.
 
     METHODS:
-   constructor,
-   processar,
-   alv,
-   smart,
-   rebase,
-   verifica,
-   leitura_dados.
+      constructor,
+      processar,
+      alv,
+      smart,
+      rebase,
+      verifica,
+      leitura_dados.
 
 *     Função que precisa ser chamada estaticamente
 *-------------------------------------------------
     CLASS-METHODS:
-save_file.
+      save_file,
+      verifica_diretorio.
 
 ENDCLASS.                    "lcl_apontamento DEFINITION
 
@@ -549,12 +550,6 @@ CLASS lcl_apontamento IMPLEMENTATION.
           error_no_gui            = 23
           OTHERS                  = 24.
 
-      "Se não estiver preenchido
-    ELSE.
-      MESSAGE s001(00) WITH text-m03 DISPLAY LIKE 'E'.
-
-      "Retorna à tela de seleção
-      LEAVE LIST-PROCESSING.
     ENDIF. "Fim se o campo PATH está preenchido
 
   ENDMETHOD.                    "leitura_dados
@@ -579,5 +574,33 @@ CLASS lcl_apontamento IMPLEMENTATION.
     p_file = lv_fullpath.
 
   ENDMETHOD.                    "save_file
+
+  METHOD verifica_diretorio.
+
+    DATA: lv_dir        TYPE string,
+          lv_dir_existe TYPE abap_bool.
+
+    lv_dir = p_file.
+
+    CALL METHOD cl_gui_frontend_services=>directory_exist
+      EXPORTING
+        directory            = lv_dir
+      RECEIVING
+        result               = lv_dir_existe
+      EXCEPTIONS
+        cntl_error           = 1
+        error_no_gui         = 2
+        wrong_parameter      = 3
+        not_supported_by_gui = 4
+        OTHERS               = 5.
+
+    IF lv_dir_existe IS INITIAL.
+      MESSAGE s001(00) WITH text-m04 DISPLAY LIKE 'E'.
+
+      "Retorna à tela de seleção
+      LEAVE LIST-PROCESSING.
+    ENDIF.
+
+  ENDMETHOD.                    "verifica_diretorio
 
 ENDCLASS.                    "lcl_apontamento IMPLEMENTATION
