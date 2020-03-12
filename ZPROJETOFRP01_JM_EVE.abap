@@ -18,24 +18,30 @@
 
 *     Verifica se o RADIO button de exportar arquivo está marcado
 *----------------------------------------------------------------
-    IF p_file IS INITIAL.
+    IF p_export IS NOT INITIAL.
 
-      "Informa o usuário que o campo está vazio
-      MESSAGE s001(00) WITH text-m03 DISPLAY LIKE 'E'.
+      IF p_file IS INITIAL.
 
-      "Retorna à tela de seleção
-      LEAVE LIST-PROCESSING.
+        "Informa o usuário que o campo está vazio
+        MESSAGE s001(00) WITH text-m03 DISPLAY LIKE 'E'.
 
-      "Chama o método que verifica se o diretório existe
-    ELSE.
+        "Retorna à tela de seleção
+        LEAVE LIST-PROCESSING.
 
-      "Caso não exista, informa o usuário que o caminho não existe
-      lcl_apontamento=>verifica_diretorio( ).
+        "Chama o método que verifica se o diretório existe
+      ELSE.
 
-    ENDIF.
+        "Caso não exista, informa o usuário que o caminho não existe
+        lcl_apontamento=>verifica_diretorio( ).
+
+      ENDIF. "Verifica se o diretório está vazio
+
+    ENDIF. "Verifica RADIO de Exportar
 
     CREATE OBJECT go_apontamento.
 
+*     Para cada busca do BDL, entra no método processamento
+*----------------------------------------------------------
   GET peras.
 
     rp_provide_from_last p0001 space pn-begda pn-endda.
@@ -49,9 +55,17 @@
       REJECT.
     ENDIF.
 
+*     Verifica se o ALV foi marcado
 *     Inicia o processamento dos dados encontrados no Select-Options
 *-------------------------------------------------------------------
-    go_apontamento->processar( ).
+    IF p_alv IS NOT INITIAL.
+      go_apontamento->processar( ).
+
+      "Processa as informações com detalhes de horas extras (mesmo com o botão desmarcado pelo usuário)
+    ELSE.
+      p_sinttc = 'X'.
+      go_apontamento->processar( ).
+    ENDIF.
 
   END-OF-SELECTION.
 

@@ -522,6 +522,7 @@ CLASS lcl_apontamento IMPLEMENTATION.
       CALL METHOD cl_gui_frontend_services=>gui_download
         EXPORTING
           filename                = lv_filename
+          show_transfer_status    = abap_false
         CHANGING
           data_tab                = lt_data_tab
         EXCEPTIONS
@@ -549,6 +550,10 @@ CLASS lcl_apontamento IMPLEMENTATION.
           not_supported_by_gui    = 22
           error_no_gui            = 23
           OTHERS                  = 24.
+
+      IF sy-subrc EQ 0.
+        MESSAGE s001(00) WITH text-m05.
+      ENDIF.
 
     ENDIF. "Fim se o campo PATH está preenchido
 
