@@ -458,32 +458,40 @@ CLASS lcl_apontamento IMPLEMENTATION.
 
       "Define um TYPES com saídas em formato de STRING
       TYPES: BEGIN OF ty_s_linha_arquivo,
-              linha TYPE c LENGTH 1000,
+              line TYPE c LENGTH 1000,
              END OF   ty_s_linha_arquivo.
 
       "Declarações de variáveis a serem utilizadas na função DOWNLOAD
-      DATA: lv_filename  TYPE string,
-            lt_data_tab       TYPE TABLE OF ty_s_linha_arquivo,
-            ls_data_tab       TYPE ty_s_linha_arquivo,
-            ls_saida          TYPE zprojetofs01_jm.
+      DATA: lv_filename TYPE string,
+            lt_data_tab TYPE TABLE OF ty_s_linha_arquivo,
+            ls_data_tab TYPE ty_s_linha_arquivo,
+            ls_saida    TYPE zprojetofs01_jm.
 
-*     Definindo "Header Line" da tabela a ser exportada
+*     Definindo "Header Line" dinamicamente da tabela a ser exportada
 *-----------------------------------------------------------------------------------
-      ls_data_tab-linha = 'Nº pessoal;Nome;Empresa;Desc. Empresa;'
-                        &&'Área RH;Desc. RH;Sub área RH;Desc. Sub área RH;Grupo RH;'
-                        &&'Desc. Grupo;Subgrupo RH;Desc. Subgrupo;Carga Horária;'
-                        &&'Dt. Apont; Cód. Proj;Projeto;Horas apont;Total Hrs.;'
-                        &&'Qtd. Hrs. Extras;Valor Hr; Vlr Total Hrs. Ext.'.
+      DATA: fieldcat   TYPE lvc_t_fcat.
+      DATA: fieldcat_s TYPE lvc_s_fcat.
 
-      "Appenda o Header
+      "Função que captura a informação de tipos dos campos
+      CALL FUNCTION 'LVC_FIELDCATALOG_MERGE'
+        EXPORTING
+          i_structure_name = 'ZPROJETOFS01_JM'
+        CHANGING
+          ct_fieldcat      = fieldcat.
+
+      "Dá um loop nas colunas da tabela, atribuindo seus valores em um String único
+      LOOP AT fieldcat INTO fieldcat_s.
+        CONCATENATE ls_data_tab-line fieldcat_s-reptext ';' INTO ls_data_tab-line.
+      ENDLOOP.
+
+      "Appenda o Header da tabela
       APPEND ls_data_tab TO lt_data_tab.
-      CLEAR ls_data_tab.
 
 *     Loop para cada informação da tabela final, appendando como uma String única
 *--------------------------------------------------------------------------------
       LOOP AT mt_saida INTO ls_saida.
 
-        ls_data_tab-linha = ls_saida-pernr    && ';' "Nº pessoal
+        ls_data_tab-line = ls_saida-pernr    && ';' "Nº pessoal
                          && ls_saida-cname    && ';' "Nome
                          && ls_saida-bukrs    && ';' "Empresa
                          && ls_saida-butxt    && ';' "Nome Empresa
